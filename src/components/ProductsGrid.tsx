@@ -66,55 +66,54 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
   return (
     <div
       ref={cardRef}
-      className={`transition-all duration-700 ${
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-      }`}
+      className={`transition-all duration-700 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        }`}
       style={{ transitionDelay: `${index * 50}ms` }}
     >
-      <Card className="group overflow-hidden border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-card">
-        <div className="relative aspect-square overflow-hidden bg-muted">
+      <Card className="group overflow-hidden border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-card h-full flex flex-col">
+        <div className="relative aspect-square overflow-hidden bg-muted flex-shrink-0">
           {/* Placeholder gradient background */}
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
             <span className="text-white/70 text-sm font-medium text-center px-2">{product.name}</span>
           </div>
-          
+
           {product.popular && (
             <Badge className="absolute top-3 left-3 bg-secondary text-secondary-foreground z-10">
               Popular
             </Badge>
           )}
-          
+
           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <Button size="icon" variant="secondary" className="rounded-full shadow-lg">
               <Heart className="h-4 w-4" />
             </Button>
           </div>
-          
-          <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-4">
-            <Button 
+
+          {/* <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-4">
+            <Button
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
               onClick={handleWhatsAppInquiry}
             >
               <MessageCircle className="h-4 w-4 mr-2" />
-              Inquire Now
+              Enquire Now
             </Button>
-          </div>
+          </div> */}
         </div>
-        
+
         <div className="p-4 space-y-2">
           <div className="text-xs text-muted-foreground font-medium">{product.category}</div>
           <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
             {product.name}
           </h3>
-          <div className="flex items-center justify-between">
-            <span className="text-xl font-bold text-foreground">£{product.price.toFixed(2)}</span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-base sm:text-xl font-bold text-foreground">£{product.price.toFixed(2)}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs sm:text-sm"
               onClick={handleWhatsAppInquiry}
             >
-              Inquire
+              Enquire
             </Button>
           </div>
         </div>
@@ -132,20 +131,20 @@ const ProductsGrid = () => {
             Our Collections
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Browse our carefully curated selection of personalised gifts, 
+            Browse our carefully curated selection of personalised gifts,
             perfect for every occasion and loved one.
           </p>
         </div>
-        
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4 sm:gap-6">
           {products.map((product, index) => (
             <ProductCard key={product.id} product={product} index={index} />
           ))}
         </div>
-        
+
         <div className="text-center mt-12">
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             variant="outline"
             className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
           >

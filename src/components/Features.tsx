@@ -3,14 +3,9 @@ import { Card } from "@/components/ui/card";
 
 const features = [
   {
-    icon: Truck,
-    title: "Free UK Delivery",
-    description: "On all orders over £30"
-  },
-  {
     icon: Shield,
     title: "Quality Guarantee",
-    description: "100% satisfaction or money back"
+    description: "100% satisfaction"
   },
   {
     icon: Heart,

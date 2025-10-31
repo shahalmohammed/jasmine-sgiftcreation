@@ -1,4 +1,4 @@
-import { Search, Heart, Menu, MessageCircle } from "lucide-react";
+import { Search, Heart, Menu, MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import logo from "@/assets/logojs.png";
@@ -6,6 +6,7 @@ import { useState } from "react";
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const categories = [
     "Personalised Baby Gifts",
@@ -26,13 +27,13 @@ const Header = () => {
             <img
               src={logo}
               alt="Jasmine's Gift Creation"
-              className="h-12 w-12 object-contain"
+              className="h-10 w-10 object-contain"
             />
-            <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-primary-foreground leading-tight">
+            <div className="">
+              <h1 className="text-base font-bold text-primary-foreground leading-tight">
                 Jasmine's Gift Creation
               </h1>
-              <p className="text-xs text-muted-foreground">Personalized Gifts</p>
+              <p className="text-[10px] text-muted-foreground">Personalized Gifts</p>
             </div>
           </div>
 
@@ -52,42 +53,54 @@ const Header = () => {
 
           {/* Icons & WhatsApp CTA */}
           <div className="flex items-center gap-2">
+            {/* About Us - Desktop Only */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden xl:flex text-sm hover:bg-primary/10"
+              onClick={() => window.location.hash = 'about'}
+            >
+              About Us
+            </Button>
 
-            {/* Heart/Wishlist Icon - Retained for product saving */}
-            <Button variant="ghost" size="icon" className="relative hover:bg-primary/10">
-              <Heart className="h-5 w-5" />
-              {/* Retain the badge for the Wishlist count */}
-              <span className="absolute -top-1 -right-1 bg-secondary text-secondary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                0
-              </span>
+            {/* Contact Us - Desktop Only */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden xl:flex text-sm hover:bg-primary/10"
+              onClick={() => window.location.hash = 'contact'}
+            >
+              Contact Us
             </Button>
 
             {/* WhatsApp CTA Button - NOW USING SECONDARY COLOR */}
             <Button
               size="default"
-              // Updated className to use secondary color for background and text
               className="hidden lg:flex items-center gap-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors shadow-md"
-              onClick={() => window.open('https://wa.me/YOURWHATSAPPNUMBER', '_blank')}
+              onClick={() => window.open('https://wa.me/+919497621273', '_blank')}
             >
               <MessageCircle className="h-5 w-5" />
               Order via WhatsApp
             </Button>
 
-            {/* WhatsApp Icon - Mobile/Tablet - NOW USING PRIMARY/FOREGROUND COLOR */}
+            {/* WhatsApp Icon - Mobile/Tablet */}
             <Button
               variant="ghost"
               size="icon"
-              // Updated className to use the brand's primary color or foreground color for the icon, 
-              // ensuring it still stands out as an important action.
               className="lg:hidden text-foreground hover:bg-primary/10"
-              onClick={() => window.open('https://wa.me/YOURWHATSAPPNUMBER', '_blank')}
+              onClick={() => window.open('https://wa.me/+919497621273', '_blank')}
             >
               <MessageCircle className="h-5 w-5" />
             </Button>
 
             {/* Menu Icon - Mobile */}
-            <Button variant="ghost" size="icon" className="md:hidden hover:bg-primary/10">
-              <Menu className="h-5 w-5" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden hover:bg-primary/10"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
@@ -107,7 +120,7 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation - Desktop */}
       <nav className="hidden md:block border-t border-border bg-background">
         <div className="container mx-auto px-4">
           <ul className="flex items-center justify-center gap-8 py-3">
@@ -122,9 +135,62 @@ const Header = () => {
                 </a>
               </li>
             ))}
+            
           </ul>
         </div>
       </nav>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-border bg-background">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex flex-col gap-2">
+              {/* About Us & Contact Us at top */}
+              <Button
+                variant="outline"
+                className="w-full justify-start text-sm font-semibold hover:bg-primary/10 hover:text-primary hover:border-primary"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  window.location.hash = 'about';
+                }}
+              >
+                About Us
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-sm font-semibold hover:bg-primary/10 hover:text-primary hover:border-primary"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  window.location.hash = 'contact';
+                }}
+              >
+                Contact Us
+              </Button>
+              
+              {/* Divider */}
+              <div className="my-2 border-t border-border"></div>
+              
+              {/* Categories */}
+              <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">
+                SHOP BY CATEGORY
+              </div>
+              {categories.map((category) => (
+                <Button
+                  key={category}
+                  variant="ghost"
+                  className="w-full justify-start text-sm font-medium hover:bg-primary/10 hover:text-primary"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    window.location.hash = category.toLowerCase().replace(/\s+/g, '-');
+                  }}
+                >
+                  {category}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
