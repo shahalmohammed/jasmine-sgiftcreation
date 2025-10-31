@@ -77,7 +77,7 @@ const Header = () => {
             <Button
               size="default"
               className="hidden lg:flex items-center gap-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors shadow-md"
-              onClick={() => window.open('https://wa.me/+919497621273', '_blank')}
+              onClick={() => window.open('https://wa.me/+447936761983', '_blank')}
             >
               <MessageCircle className="h-5 w-5" />
               Order via WhatsApp
@@ -88,7 +88,7 @@ const Header = () => {
               variant="ghost"
               size="icon"
               className="lg:hidden text-foreground hover:bg-primary/10"
-              onClick={() => window.open('https://wa.me/+919497621273', '_blank')}
+              onClick={() => window.open('https://wa.me/+447936761983', '_blank')}
             >
               <MessageCircle className="h-5 w-5" />
             </Button>

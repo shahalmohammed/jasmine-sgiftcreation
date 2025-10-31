@@ -60,7 +60,7 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
 
   const handleWhatsAppInquiry = () => {
     const message = `Hi! I'm interested in:\n${product.name}\nCategory: ${product.category}\nPrice: £${product.price.toFixed(2)}`;
-    window.open(`https://wa.me/+919497621273?text=${encodeURIComponent(message)}`, '_blank');
+    window.open(`https://wa.me/+447936761983?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   return (
