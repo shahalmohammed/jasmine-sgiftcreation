@@ -175,7 +175,7 @@ const Hero = () => {
       </div>
 
       {/* Dot Indicators */}
-      <div className="absolute top-1 bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex gap-3">
         {slides.map((_, index) => (
           <button
             key={index}
