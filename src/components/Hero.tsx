@@ -130,10 +130,11 @@ const Hero = () => {
             {slide.title}
             <span
               className="block text-primary mt-2"
-              // Staggered animation: delay applied directly for Subtitle
+
               style={{
                 animationDelay: isAnimating ? '0.2s' : '0s',
-                display: isAnimating ? 'block' : 'none' // Hide during exit
+                display: isAnimating ? 'block' : 'none',
+                color: '#fc98cdff',
               }}
             >
               {slide.subtitle}
@@ -190,8 +191,8 @@ const Hero = () => {
               }, 800);
             }}
             className={`h-2 rounded-full transition-all ${index === currentSlide
-                ? "bg-primary w-8"
-                : "bg-primary/40 w-2 hover:bg-primary/70"
+              ? "bg-primary w-8"
+              : "bg-primary/40 w-2 hover:bg-primary/70"
               }`}
             aria-label={`Go to slide ${index + 1}`}
           />

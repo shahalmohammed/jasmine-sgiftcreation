@@ -3,6 +3,11 @@ import { Card } from "@/components/ui/card";
 
 const features = [
   {
+    icon: Truck,
+    title: "Delivery",
+    description: "Worldwide shipping"
+  },
+  {
     icon: Shield,
     title: "Quality Guarantee",
     description: "100% satisfaction"
@@ -21,7 +26,7 @@ const features = [
 
 const Features = () => {
   return (
-    <section className="py-16 bg-gradient-to-b from-primary/5 to-background">
+    <section className="py-6 bg-gradient-to-b from-primary/5 to-background">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {features.map((feature, index) => {
