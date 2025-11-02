@@ -1,5 +1,5 @@
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/+$/, "") || "https://jasminesgiftbackend-c9ed.vercel.app/";
+const API_BASE = "https://jasminesgiftbackend-c9ed.vercel.app/";
 
 export type Product = {
   _id: string;
