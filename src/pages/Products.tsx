@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ShoppingCart, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -12,11 +12,20 @@ import {
 } from "@/components/ui/select";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { 
-  fetchProducts, 
-  openWhatsAppInquiry,
-  type Product 
-} from "@/services/api";
+
+type Product = {
+  _id: string;
+  name: string;
+  category?: string;
+  price?: number;
+  imageUrl?: string;
+  isPopular?: boolean;
+  isActive?: boolean;
+  description?: string;
+  features?: string[];
+};
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/+$/, "") || "";
 
 const ProductDetailsModal = ({ product, onClose }: { product: Product | null; onClose: () => void }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -38,6 +47,13 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product | null; on
       onClose();
       setIsClosing(false);
     }, 300);
+  };
+
+  const handleWhatsAppInquiry = () => {
+    const message =
+      `Hi! I'm interested in:\n${product.name}` +
+      (product.price != null ? `\nPrice: £${product.price.toFixed(2)}` : "");
+    window.open(`https://wa.me/+447936761983?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   return (
@@ -136,7 +152,7 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product | null; on
             <div className="space-y-3 mt-8">
               <Button
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6"
-                onClick={() => openWhatsAppInquiry(product)}
+                onClick={handleWhatsAppInquiry}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 Enquire on WhatsApp
@@ -168,6 +184,13 @@ const ProductCard = ({ product, index, onClick }: { product: Product; index: num
       if (cardRef.current) io.unobserve(cardRef.current);
     };
   }, []);
+
+  const handleWhatsAppInquiry = () => {
+    const message =
+      `Hi! I'm interested in:\n${product.name}` +
+      (product.price != null ? `\nPrice: £${product.price.toFixed(2)}` : "");
+    window.open(`https://wa.me/+447936761983?text=${encodeURIComponent(message)}`, "_blank");
+  };
 
   return (
     <div
@@ -213,7 +236,7 @@ const ProductCard = ({ product, index, onClick }: { product: Product; index: num
               className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs sm:text-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                openWhatsAppInquiry(product);
+                handleWhatsAppInquiry();
               }}
             >
               Enquire
@@ -255,13 +278,17 @@ const Products = () => {
         setLoading(true);
         setError(null);
 
-        const items = await fetchProducts({ limit: 100 }, ctrl.signal);
+        const res = await fetch(`http://localhost:4000/api/products?limit=100`, { signal: ctrl.signal });
+
+        if (!res.ok) throw new Error(`Products fetch failed: ${res.status}`);
+
+        const json = await res.json();
+        const items: Product[] = Array.isArray(json.items) ? json.items : [];
+
         setProducts(items);
       } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.error(err);
-          setError(err.message || "Failed to load products");
-        }
+        console.error(err);
+        setError(err.message || "Failed to load products");
       } finally {
         setLoading(false);
       }
@@ -280,12 +307,15 @@ const Products = () => {
   const filteredProducts = useMemo(() => {
     let filtered = products.filter(p => {
       if (!searchQuery) {
+        // No search query, only filter by category
         const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
         return matchesCategory;
       }
 
+      // Split search query into individual words
       const searchWords = searchQuery.toLowerCase().split(/\s+/).filter(word => word.length > 0);
       
+      // Check if product matches ANY of the search words in name or description
       const matchesSearch = searchWords.some(word => {
         const nameMatch = p.name.toLowerCase().includes(word);
         const descMatch = p.description && p.description.toLowerCase().includes(word);
@@ -415,6 +445,7 @@ const Products = () => {
 
                 <div className="flex gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                    // Show first, last, current, and pages around current
                     if (
                       page === 1 ||
                       page === totalPages ||
