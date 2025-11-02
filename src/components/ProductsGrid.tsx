@@ -260,8 +260,8 @@ const ProductsGrid = () => {
         setError(null);
 
         const [popRes, normRes] = await Promise.all([
-          fetch(`http://localhost:4000/api/products/popular?limit=5`, { signal: ctrl.signal }),
-          fetch(`http://localhost:4000/api/products?limit=10`, { signal: ctrl.signal }),
+          fetch(`https://jasminesgiftbackend.vercel.app/api/products/popular?limit=5`, { signal: ctrl.signal }),
+          fetch(`https://jasminesgiftbackend.vercel.app/api/products?limit=10`, { signal: ctrl.signal }),
         ]);
 
         if (!popRes.ok) throw new Error(`Popular fetch failed: ${popRes.status}`);

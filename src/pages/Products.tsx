@@ -278,7 +278,7 @@ const Products = () => {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`http://localhost:4000/api/products?limit=100`, { signal: ctrl.signal });
+        const res = await fetch(`https://jasminesgiftbackend.vercel.app/api/products?limit=100`, { signal: ctrl.signal });
 
         if (!res.ok) throw new Error(`Products fetch failed: ${res.status}`);
 
