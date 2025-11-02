@@ -2,8 +2,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Heart, X, ShoppingCart, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -13,20 +12,11 @@ import {
 } from "@/components/ui/select";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-type Product = {
-  _id: string;
-  name: string;
-  category?: string;
-  price?: number;
-  imageUrl?: string;
-  isPopular?: boolean;
-  isActive?: boolean;
-  description?: string;
-  features?: string[];
-};
-
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/+$/, "") || "";
+import { 
+  fetchProducts, 
+  openWhatsAppInquiry,
+  type Product 
+} from "@/services/api";
 
 const ProductDetailsModal = ({ product, onClose }: { product: Product | null; onClose: () => void }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -48,13 +38,6 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product | null; on
       onClose();
       setIsClosing(false);
     }, 300);
-  };
-
-  const handleWhatsAppInquiry = () => {
-    const message =
-      `Hi! I'm interested in:\n${product.name}` +
-      (product.price != null ? `\nPrice: £${product.price.toFixed(2)}` : "");
-    window.open(`https://wa.me/+447936761983?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   return (
@@ -153,7 +136,7 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product | null; on
             <div className="space-y-3 mt-8">
               <Button
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6"
-                onClick={handleWhatsAppInquiry}
+                onClick={() => openWhatsAppInquiry(product)}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 Enquire on WhatsApp
@@ -185,13 +168,6 @@ const ProductCard = ({ product, index, onClick }: { product: Product; index: num
       if (cardRef.current) io.unobserve(cardRef.current);
     };
   }, []);
-
-  const handleWhatsAppInquiry = () => {
-    const message =
-      `Hi! I'm interested in:\n${product.name}` +
-      (product.price != null ? `\nPrice: £${product.price.toFixed(2)}` : "");
-    window.open(`https://wa.me/+447936761983?text=${encodeURIComponent(message)}`, "_blank");
-  };
 
   return (
     <div
@@ -237,7 +213,7 @@ const ProductCard = ({ product, index, onClick }: { product: Product; index: num
               className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs sm:text-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                handleWhatsAppInquiry();
+                openWhatsAppInquiry(product);
               }}
             >
               Enquire
@@ -262,6 +238,15 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
+  // Get search query from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const searchParam = params.get('search');
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, []);
+
   useEffect(() => {
     const ctrl = new AbortController();
 
@@ -270,17 +255,13 @@ const Products = () => {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`https://jasminesgiftbackend.vercel.app/api/products?limit=100`, { signal: ctrl.signal });
-
-        if (!res.ok) throw new Error(`Products fetch failed: ${res.status}`);
-
-        const json = await res.json();
-        const items: Product[] = Array.isArray(json.items) ? json.items : [];
-
+        const items = await fetchProducts({ limit: 100 }, ctrl.signal);
         setProducts(items);
       } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Failed to load products");
+        if (err.name !== 'AbortError') {
+          console.error(err);
+          setError(err.message || "Failed to load products");
+        }
       } finally {
         setLoading(false);
       }
@@ -298,7 +279,19 @@ const Products = () => {
   // Filter and sort products
   const filteredProducts = useMemo(() => {
     let filtered = products.filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!searchQuery) {
+        const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
+        return matchesCategory;
+      }
+
+      const searchWords = searchQuery.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+      
+      const matchesSearch = searchWords.some(word => {
+        const nameMatch = p.name.toLowerCase().includes(word);
+        const descMatch = p.description && p.description.toLowerCase().includes(word);
+        return nameMatch || descMatch;
+      });
+
       const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
@@ -354,48 +347,10 @@ const Products = () => {
       <Header />
       <ProductDetailsModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       
-      {/* Header */}
-      <div className="bg-gradient-to-br from-primary/10 to-secondary/10 py-16">
-        <div className="container mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground text-center mb-4">
-            All Products
-          </h1>
-          <p className="text-lg text-muted-foreground text-center max-w-2xl mx-auto">
-            Explore our complete collection of personalised gifts
-          </p>
-        </div>
-      </div>
-
       {/* Filters */}
       <div className="border-b bg-card sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            {/* Category Filter */}
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Sort */}
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-full md:w-[200px]">
                 <SelectValue placeholder="Sort by" />
@@ -412,6 +367,9 @@ const Products = () => {
 
           {/* Results count */}
           <div className="mt-4 text-sm text-muted-foreground">
+            {searchQuery && (
+              <span className="font-medium">Search results for "{searchQuery}" - </span>
+            )}
             Showing {paginatedProducts.length} of {filteredProducts.length} products
           </div>
         </div>
@@ -429,6 +387,7 @@ const Products = () => {
                 setSearchQuery("");
                 setSelectedCategory("all");
                 setSortBy("default");
+                window.history.pushState({}, '', '/products');
               }}
             >
               Clear Filters
@@ -456,7 +415,6 @@ const Products = () => {
 
                 <div className="flex gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                    // Show first, last, current, and pages around current
                     if (
                       page === 1 ||
                       page === totalPages ||

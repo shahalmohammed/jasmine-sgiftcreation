@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, User, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { authService } from "../../services/productService";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -19,33 +20,24 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("https://jasminesgiftbackend.vercel.app/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem("adminToken", data.token);
-        localStorage.setItem("adminUser", JSON.stringify(data.user || { email }));
-        toast({
-          title: "Login Successful",
-          description: "Welcome back, admin!",
-        });
-        navigate("/admin/dashboard");
-      } else {
-        toast({
-          title: "Login Failed",
-          description: data.message || "Invalid credentials",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
+      const data = await authService.login(email, password);
+      
+      console.log("Login successful:", data); // Debug log
+      
       toast({
-        title: "Error",
-        description: "Unable to connect to server",
+        title: "Login Successful",
+        description: "Welcome back, admin!",
+      });
+      
+      // Small delay to ensure toast is visible
+      setTimeout(() => {
+        navigate("/admin/dashboard", { replace: true });
+      }, 500);
+    } catch (error) {
+      console.error("Login error:", error); // Debug log
+      toast({
+        title: "Login Failed",
+        description: error instanceof Error ? error.message : "Unable to connect to server",
         variant: "destructive",
       });
     } finally {
@@ -75,6 +67,7 @@ const AdminLogin = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10"
+                placeholder="admin@example.com"
                 required
               />
             </div>
@@ -90,6 +83,7 @@ const AdminLogin = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10"
+                placeholder="Enter your password"
                 required
               />
             </div>

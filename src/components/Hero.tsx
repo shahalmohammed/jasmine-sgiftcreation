@@ -159,6 +159,7 @@ const Hero = () => {
             }}
           >
             <Button
+              onClick={() => window.open('https://wa.me/+447936761983?text=Hi!', '_blank')}
               size="lg"
               className="bg-primary hover:bg-primary-dark text-primary-foreground shadow-elegant hover:shadow-hover transition-all"
             >
@@ -167,6 +168,7 @@ const Hero = () => {
             <Button
               size="lg"
               variant="outline"
+              onClick={() => window.location.assign("/products")}
               className="border-primary hover:bg-primary/10 transition-all"
             >
               View Collections

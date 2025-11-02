@@ -2,7 +2,7 @@ import { Search, Heart, Menu, MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import logo from "@/assets/logojs.png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -17,24 +17,51 @@ const Header = () => {
     "Accessories"
   ];
 
+  useEffect(() => {
+    if (window.location.pathname === '/products') {
+      const params = new URLSearchParams(window.location.search);
+      const searchParam = params.get('search');
+      if (searchParam) {
+        setSearchQuery(searchParam);
+      }
+    }
+  }, []);
+
+  const handleSearch = (e?: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e && e.key !== 'Enter') return;
+
+    const query = searchQuery.trim();
+    if (query) {
+      window.location.href = `/products?search=${encodeURIComponent(query)}`;
+    } else {
+      window.location.href = '/products';
+    }
+  };
+
+  const handleCategoryClick = (category: string) => {
+    const keywords = category.trim();
+    window.location.href = `/products?search=${encodeURIComponent(keywords)}`;
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
-      {/* Main Header */}
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <img
-              src={logo}
-              alt="Jasmine's Gift Creation"
-              className="h-10 w-10 object-contain"
-            />
-            <div className="">
-              <h1 className="text-base font-bold text-primary-foreground leading-tight">
-                Jasmine's Gift Creation
-              </h1>
-              <p className="text-[10px] text-muted-foreground">Personalized Gifts</p>
-            </div>
+            <a href="/" className="flex items-center gap-2">
+              <img
+                src={logo}
+                alt="Jasmine's Gift Creation"
+                className="h-10 w-10 object-contain"
+              />
+              <div className="">
+                <h1 className="text-base font-bold text-primary-foreground leading-tight">
+                  Jasmine's Gift Creation
+                </h1>
+                <p className="text-[10px] text-muted-foreground">Personalized Gifts</p>
+              </div>
+            </a>
           </div>
 
           {/* Search Bar - Desktop */}
@@ -47,6 +74,7 @@ const Header = () => {
                 className="pl-10 bg-muted/50 border-border focus:border-primary transition-colors"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearch}
               />
             </div>
           </div>
@@ -58,7 +86,7 @@ const Header = () => {
               variant="ghost"
               size="sm"
               className="hidden xl:flex text-sm hover:bg-primary/10"
-              onClick={() => window.location.hash = 'about'}
+              onClick={() => window.location.assign("/about")}
             >
               About Us
             </Button>
@@ -68,7 +96,7 @@ const Header = () => {
               variant="ghost"
               size="sm"
               className="hidden xl:flex text-sm hover:bg-primary/10"
-              onClick={() => window.location.hash = 'contact'}
+              onClick={() => window.location.assign("/contact")}
             >
               Contact Us
             </Button>
@@ -94,9 +122,9 @@ const Header = () => {
             </Button>
 
             {/* Menu Icon - Mobile */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="md:hidden hover:bg-primary/10"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
@@ -115,6 +143,7 @@ const Header = () => {
               className="pl-10 bg-muted/50 border-border"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearch}
             />
           </div>
         </div>
@@ -126,16 +155,16 @@ const Header = () => {
           <ul className="flex items-center justify-center gap-8 py-3">
             {categories.map((category) => (
               <li key={category}>
-                <a
-                  href={`#${category.toLowerCase().replace(/\s+/g, '-')}`}
+                <button
+                  onClick={() => handleCategoryClick(category)}
                   className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors relative group"
                 >
                   {category}
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-                </a>
+                </button>
               </li>
             ))}
-            
+
           </ul>
         </div>
       </nav>
@@ -166,10 +195,10 @@ const Header = () => {
               >
                 Contact Us
               </Button>
-              
+
               {/* Divider */}
               <div className="my-2 border-t border-border"></div>
-              
+
               {/* Categories */}
               <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">
                 SHOP BY CATEGORY
@@ -181,7 +210,7 @@ const Header = () => {
                   className="w-full justify-start text-sm font-medium hover:bg-primary/10 hover:text-primary"
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    window.location.hash = category.toLowerCase().replace(/\s+/g, '-');
+                    handleCategoryClick(category);
                   }}
                 >
                   {category}

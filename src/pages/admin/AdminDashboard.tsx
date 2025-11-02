@@ -42,6 +42,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { productService, authService } from "../../services/productService";
 
 interface Product {
   _id: string;
@@ -76,7 +77,6 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
     if (isOpen) {
       document.body.style.overflow = "hidden";
       if (product) {
-        // Populate form with existing product data
         setFormData({
           name: product.name,
           description: product.description,
@@ -85,7 +85,6 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
         });
         setImagePreview(product.imageUrl);
       } else {
-        // Reset form for new product
         setFormData({ name: "", description: "", price: "", isPopular: false });
         setImageFile(null);
         setImagePreview(null);
@@ -115,55 +114,37 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("adminToken");
-      const formDataToSend = new FormData();
-      
-      formDataToSend.append("name", formData.name);
-      formDataToSend.append("description", formData.description);
-      formDataToSend.append("price", formData.price);
-      formDataToSend.append("isPopular", formData.isPopular.toString());
-      
-      if (imageFile) {
-        formDataToSend.append("image", imageFile);
-      }
+      const formDataToSend = {
+        name: formData.name,
+        description: formData.description,
+        price: formData.price,
+        isPopular: formData.isPopular,
+        imageFile,
+      };
 
-      const url = isEditMode 
-        ? `https://jasminesgiftbackend.vercel.app/api/products/${product._id}`
-        : "https://jasminesgiftbackend.vercel.app/api/products";
-      
-      const method = isEditMode ? "PATCH" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formDataToSend,
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
+      if (isEditMode) {
+        await productService.updateProduct(product._id, formDataToSend);
         toast({
           title: "Success",
-          description: isEditMode ? "Product updated successfully!" : "Product added successfully!",
+          description: "Product updated successfully!",
         });
-        setFormData({ name: "", description: "", price: "", isPopular: false });
-        setImageFile(null);
-        setImagePreview(null);
-        onSuccess();
-        onClose();
       } else {
+        await productService.createProduct(formDataToSend);
         toast({
-          title: "Error",
-          description: data.message || `Failed to ${isEditMode ? 'update' : 'add'} product`,
-          variant: "destructive",
+          title: "Success",
+          description: "Product added successfully!",
         });
       }
+
+      setFormData({ name: "", description: "", price: "", isPopular: false });
+      setImageFile(null);
+      setImagePreview(null);
+      onSuccess();
+      onClose();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Unable to connect to server",
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -350,26 +331,16 @@ const AdminDashboard = () => {
   const [globalFilter, setGlobalFilter] = useState("");
 
   useEffect(() => {
-    const user = localStorage.getItem("adminUser");
-    if (user) {
-      setAdminUser(JSON.parse(user));
-    }
+    const user = authService.getCurrentUser();
+    setAdminUser(user);
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch("https://jasminesgiftbackend.vercel.app/api/products", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data.items || []);
-      }
+      const data = await productService.getAllProducts();
+      setProducts(data);
     } catch (error) {
       console.error("Failed to fetch products:", error);
       toast({
@@ -384,24 +355,12 @@ const AdminDashboard = () => {
 
   const handleTogglePopular = async (productId: string) => {
     try {
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch(
-        `https://jasminesgiftbackend.vercel.app/api/products/${productId}/toggle-popular`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Product popularity updated",
-        });
-        fetchProducts();
-      }
+      await productService.togglePopularity(productId);
+      toast({
+        title: "Success",
+        description: "Product popularity updated",
+      });
+      fetchProducts();
     } catch (error) {
       toast({
         title: "Error",
@@ -415,24 +374,12 @@ const AdminDashboard = () => {
     if (!confirm("Are you sure you want to delete this product?")) return;
 
     try {
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch(
-        `https://jasminesgiftbackend.vercel.app/api/products/${productId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Product deleted successfully",
-        });
-        fetchProducts();
-      }
+      await productService.deleteProduct(productId);
+      toast({
+        title: "Success",
+        description: "Product deleted successfully",
+      });
+      fetchProducts();
     } catch (error) {
       toast({
         title: "Error",
@@ -443,8 +390,7 @@ const AdminDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("adminUser");
+    authService.logout();
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out",

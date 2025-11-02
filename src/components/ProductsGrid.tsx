@@ -2,21 +2,13 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, ShoppingCart } from "lucide-react";
-
-type Product = {
-  _id: string;
-  name: string;
-  category?: string;
-  price?: number;
-  imageUrl?: string;
-  isPopular?: boolean;
-  isActive?: boolean;
-  description?: string;
-  features?: string[];
-};
-
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/+$/, "") || "";
+import { X, ShoppingCart } from "lucide-react";
+import { 
+  fetchPopularProducts, 
+  fetchProducts, 
+  openWhatsAppInquiry,
+  type Product 
+} from "@/services/api";
 
 const ProductDetailsModal = ({ product, onClose }: { product: Product | null; onClose: () => void }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -38,13 +30,6 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product | null; on
       onClose();
       setIsClosing(false);
     }, 300);
-  };
-
-  const handleWhatsAppInquiry = () => {
-    const message =
-      `Hi! I'm interested in:\n${product.name}` +
-      (product.price != null ? `\nPrice: £${product.price.toFixed(2)}` : "");
-    window.open(`https://wa.me/+447936761983?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   return (
@@ -92,7 +77,7 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product | null; on
                   {product.category}
                 </div>
               )}
-              
+
               <div>
                 <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-2">
                   {product.name}
@@ -107,11 +92,11 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product | null; on
                   <p className="leading-relaxed">{product.description}</p>
                 ) : (
                   <p className="leading-relaxed">
-                    This beautifully crafted personalised item makes the perfect gift for any occasion. 
+                    This beautifully crafted personalised item makes the perfect gift for any occasion.
                     Each piece is carefully designed to create lasting memories.
                   </p>
                 )}
-                
+
                 {product.features && product.features.length > 0 ? (
                   <div className="space-y-2">
                     {product.features.map((feature, idx) => (
@@ -140,11 +125,10 @@ const ProductDetailsModal = ({ product, onClose }: { product: Product | null; on
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="space-y-3 mt-8">
               <Button
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-6"
-                onClick={handleWhatsAppInquiry}
+                onClick={() => openWhatsAppInquiry(product)}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 Enquire on WhatsApp
@@ -177,13 +161,6 @@ const ProductCard = ({ product, index, onClick }: { product: Product; index: num
     };
   }, []);
 
-  const handleWhatsAppInquiry = () => {
-    const message =
-      `Hi! I'm interested in:\n${product.name}` +
-      (product.price != null ? `\nPrice: £${product.price.toFixed(2)}` : "");
-    window.open(`https://wa.me/+447936761983?text=${encodeURIComponent(message)}`, "_blank");
-  };
-
   return (
     <div
       ref={cardRef}
@@ -199,11 +176,6 @@ const ProductCard = ({ product, index, onClick }: { product: Product; index: num
               alt={product.name}
               className="absolute inset-0 w-full h-full object-cover z-10"
               loading="lazy"
-              onLoad={() => console.log("IMG LOADED:", product.imageUrl)}
-              onError={(e) => {
-                console.error("IMG ERROR:", product.imageUrl, e);
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-              }}
             />
           ) : null}
 
@@ -214,7 +186,6 @@ const ProductCard = ({ product, index, onClick }: { product: Product; index: num
           {product.isPopular && (
             <Badge className="absolute top-3 left-3 bg-secondary text-secondary-foreground z-20">Popular</Badge>
           )}
-         
         </div>
 
         <div className="p-4 space-y-2">
@@ -234,7 +205,7 @@ const ProductCard = ({ product, index, onClick }: { product: Product; index: num
               className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs sm:text-sm"
               onClick={(e) => {
                 e.stopPropagation();
-                handleWhatsAppInquiry();
+                openWhatsAppInquiry(product);
               }}
             >
               Enquire
@@ -261,19 +232,10 @@ const ProductsGrid = () => {
         setLoading(true);
         setError(null);
 
-        const [popRes, normRes] = await Promise.all([
-          fetch(`https://jasminesgiftbackend.vercel.app/api/products/popular?limit=5`, { signal: ctrl.signal }),
-          fetch(`https://jasminesgiftbackend.vercel.app/api/products?limit=10`, { signal: ctrl.signal }),
+        const [popItems, normItems] = await Promise.all([
+          fetchPopularProducts(5, ctrl.signal),
+          fetchProducts({ limit: 10 }, ctrl.signal),
         ]);
-
-        if (!popRes.ok) throw new Error(`Popular fetch failed: ${popRes.status}`);
-        if (!normRes.ok) throw new Error(`Products fetch failed: ${normRes.status}`);
-
-        const popJson = await popRes.json();
-        const normJson = await normRes.json();
-
-        const popItems: Product[] = Array.isArray(popJson.items) ? popJson.items : [];
-        const normItems: Product[] = Array.isArray(normJson.items) ? normJson.items : [];
 
         const popularIds = new Set(popItems.map(p => p._id));
         const filteredNormal = normItems.filter(p => !popularIds.has(p._id));
@@ -281,8 +243,10 @@ const ProductsGrid = () => {
         setPopular(popItems.slice(0, 5));
         setNormal(filteredNormal.slice(0, 10));
       } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Failed to load products");
+        if (err.name !== 'AbortError') {
+          console.error(err);
+          setError(err.message || "Failed to load products");
+        }
       } finally {
         setLoading(false);
       }
@@ -314,9 +278,9 @@ const ProductsGrid = () => {
   }
 
   return (
-    <section className="py-6 bg-background">
+    <section className="bg-background">
       <ProductDetailsModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
-      
+
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 space-y-4">
           <h2 className="text-4xl md:text-5xl font-serif font-bold text-foreground">Our Collections</h2>
