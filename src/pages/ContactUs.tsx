@@ -62,7 +62,7 @@ const ContactUs = () => {
 
                     <Card className="p-6 hover:shadow-lg transition-shadow">
                         <div className="flex flex-col items-center text-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center">
+                            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
                                 <Mail className="h-8 w-8 text-secondary" />
                             </div>
                             <div>
@@ -72,7 +72,7 @@ const ContactUs = () => {
                                 </p>
                                 <a
                                     href="mailto:info@jasminesgift.com"
-                                    className="text-secondary hover:text-secondary/80 font-medium break-all"
+                                    className="text-primary hover:text-primary/80 font-medium"
                                 >
                                     info@jasminesgift.com
                                 </a>
@@ -88,10 +88,10 @@ const ContactUs = () => {
                             <div>
                                 <h3 className="font-semibold text-lg mb-2 text-foreground">Location</h3>
                                 <p className="text-muted-foreground text-sm mb-3">
-                                    Visit our studio
+                                    Our studio
                                 </p>
                                 <p className="text-foreground font-medium">
-                                    London, United Kingdom
+                                    Humberstone, United Kingdom
                                 </p>
                             </div>
                         </div>
@@ -99,7 +99,7 @@ const ContactUs = () => {
 
                     <Card className="p-6 hover:shadow-lg transition-shadow">
                         <div className="flex flex-col items-center text-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center">
+                            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
                                 <Clock className="h-8 w-8 text-secondary" />
                             </div>
                             <div>

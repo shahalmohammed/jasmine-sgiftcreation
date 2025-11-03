@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import logo from "@/assets/logojs.png";
 import { useState, useEffect } from "react";
+import { handleCategoryClick } from "./CategoryLinks";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+ const navigate = useNavigate();
   const categories = [
     "Personalised Baby Gifts",
     "Personalised Wedding Gifts",
@@ -36,11 +38,6 @@ const Header = () => {
     } else {
       window.location.href = '/products';
     }
-  };
-
-  const handleCategoryClick = (category: string) => {
-    const keywords = category.trim();
-    window.location.href = `/products?search=${encodeURIComponent(keywords)}`;
   };
 
   return (
@@ -180,47 +177,49 @@ const Header = () => {
                 className="w-full justify-start text-sm font-semibold hover:bg-primary/10 hover:text-primary hover:border-primary"
                 onClick={() => {
                   setIsMobileMenuOpen(false);
-                  window.location.hash = 'about';
+                  navigate("/about");
                 }}
               >
                 About Us
               </Button>
+
               <Button
                 variant="outline"
                 className="w-full justify-start text-sm font-semibold hover:bg-primary/10 hover:text-primary hover:border-primary"
                 onClick={() => {
                   setIsMobileMenuOpen(false);
-                  window.location.hash = 'contact';
+                  navigate("/contact");
                 }}
               >
                 Contact Us
               </Button>
 
-              {/* Divider */}
-              <div className="my-2 border-t border-border"></div>
+            {/* Divider */}
+            <div className="my-2 border-t border-border"></div>
 
-              {/* Categories */}
-              <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">
-                SHOP BY CATEGORY
-              </div>
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant="ghost"
-                  className="w-full justify-start text-sm font-medium hover:bg-primary/10 hover:text-primary"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    handleCategoryClick(category);
-                  }}
-                >
-                  {category}
-                </Button>
-              ))}
+            {/* Categories */}
+            <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">
+              SHOP BY CATEGORY
             </div>
+            {categories.map((category) => (
+              <Button
+                key={category}
+                variant="ghost"
+                className="w-full justify-start text-sm font-medium hover:bg-primary/10 hover:text-primary"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  handleCategoryClick(category);
+                }}
+              >
+                {category}
+              </Button>
+            ))}
           </div>
         </div>
-      )}
-    </header>
+        </div>
+  )
+}
+    </header >
   );
 };
 
