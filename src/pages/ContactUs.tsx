@@ -71,10 +71,10 @@ const ContactUs = () => {
                                     Send us an email
                                 </p>
                                 <a
-                                    href="mailto:info@jasminesgift.com"
+                                    href="mailto:ami.000@hotmail.com"
                                     className="text-primary hover:text-primary/80 font-medium"
                                 >
-                                    info@jasminesgift.com
+                                    ami.000@hotmail.com
                                 </a>
                             </div>
                         </div>
