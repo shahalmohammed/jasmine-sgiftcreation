@@ -261,7 +261,7 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 border rounded-lg">
+          {/* <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="space-y-0.5">
               <Label htmlFor="isPopular" className="text-base">
                 Mark as Popular
@@ -277,7 +277,7 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
                 setFormData({ ...formData, isPopular: checked })
               }
             />
-          </div>
+          </div> */}
 
           <div className="flex gap-3 pt-4">
             <Button
