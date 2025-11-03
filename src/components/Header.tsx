@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
- const navigate = useNavigate();
+  const navigate = useNavigate();
   const categories = [
     "Personalised Baby Gifts",
     "Personalised Wedding Gifts",
@@ -83,20 +83,26 @@ const Header = () => {
               variant="ghost"
               size="sm"
               className="hidden xl:flex text-sm hover:bg-primary/10"
-              onClick={() => window.location.assign("/about")}
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                window.location.assign("/about");
+              }}
             >
               About Us
             </Button>
 
-            {/* Contact Us - Desktop Only */}
             <Button
               variant="ghost"
               size="sm"
               className="hidden xl:flex text-sm hover:bg-primary/10"
-              onClick={() => window.location.assign("/contact")}
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                window.location.assign("/contact");
+              }}
             >
               Contact Us
             </Button>
+
 
             {/* WhatsApp CTA Button - NOW USING SECONDARY COLOR */}
             <Button
@@ -194,31 +200,31 @@ const Header = () => {
                 Contact Us
               </Button>
 
-            {/* Divider */}
-            <div className="my-2 border-t border-border"></div>
+              {/* Divider */}
+              <div className="my-2 border-t border-border"></div>
 
-            {/* Categories */}
-            <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">
-              SHOP BY CATEGORY
+              {/* Categories */}
+              <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">
+                SHOP BY CATEGORY
+              </div>
+              {categories.map((category) => (
+                <Button
+                  key={category}
+                  variant="ghost"
+                  className="w-full justify-start text-sm font-medium hover:bg-primary/10 hover:text-primary"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleCategoryClick(category);
+                  }}
+                >
+                  {category}
+                </Button>
+              ))}
             </div>
-            {categories.map((category) => (
-              <Button
-                key={category}
-                variant="ghost"
-                className="w-full justify-start text-sm font-medium hover:bg-primary/10 hover:text-primary"
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  handleCategoryClick(category);
-                }}
-              >
-                {category}
-              </Button>
-            ))}
           </div>
         </div>
-        </div>
-  )
-}
+      )
+      }
     </header >
   );
 };

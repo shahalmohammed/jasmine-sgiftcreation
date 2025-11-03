@@ -8,7 +8,7 @@ const Footer = () => {
   const navigate = useNavigate();
   const handleLinkClick = (link: string) => {
     if (link === "About Us") navigate("/about");
-    else if (link === "Contact") navigate("/contact");
+    else if (link === "Contact Us") navigate("/contact");
   };
   return (
     <footer className="bg-secondary border-t border-border mt-20">
@@ -43,6 +43,7 @@ const Footer = () => {
                     onClick={(e) => {
                       e.preventDefault();
                       handleLinkClick(link);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
