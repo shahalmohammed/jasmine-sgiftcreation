@@ -524,10 +524,6 @@ const AdminDashboard = () => {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
             <Button variant="destructive" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
               Logout
