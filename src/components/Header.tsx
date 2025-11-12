@@ -211,16 +211,16 @@ const Header = () => {
                 Contact Us
               </Button>
               <Button
-              variant="ghost"
-              size="sm"
-              className="hidden xl:flex text-sm hover:bg-primary/10"
-              onClick={() => {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-                window.location.assign("/admin/login");
-              }}
-            >
-              Login
-            </Button>
+                variant="outline"
+                size="sm"
+                className="w-full justify-start text-sm font-semibold hover:bg-primary/10 hover:text-primary hover:border-primary"
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  window.location.assign("/admin/login");
+                }}
+              >
+                Login
+              </Button>
 
               {/* Divider */}
               <div className="my-2 border-t border-border"></div>
