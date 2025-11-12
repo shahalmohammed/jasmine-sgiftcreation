@@ -219,7 +219,7 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
 
           <div className="space-y-2">
             <Label htmlFor="image">
-              Product Image {!isEditMode && <span className="text-red-500">*</span>}
+              Product Image
             </Label>
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
               {imagePreview ? (
@@ -247,14 +247,13 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
                   <p className="text-sm text-muted-foreground mb-1">
                     Click to upload or drag and drop
                   </p>
-                  <p className="text-xs text-muted-foreground">PNG, JPG, WEBP up to 10MB</p>
+                  <p className="text-xs text-muted-foreground">PNG, JPG, WEBP up to 10MB (Optional)</p>
                   <Input
                     id="image"
                     type="file"
                     accept="image/*"
                     className="hidden"
                     onChange={handleImageChange}
-                    required={!isEditMode}
                   />
                 </label>
               )}
