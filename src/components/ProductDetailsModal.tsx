@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, ShoppingCart } from "lucide-react";
+import { X, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import { Product, WHATSAPP_NUMBER } from "@/types";
 
 interface ProductDetailsModalProps {
@@ -11,10 +11,21 @@ interface ProductDetailsModalProps {
 
 export const ProductDetailsModal = ({ product, onClose }: ProductDetailsModalProps) => {
   const [isClosing, setIsClosing] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  // Build image list (prefer product.images, fall back to imageUrl)
+  const images = useMemo(() => {
+    if (!product) return [] as string[];
+    if (product.images && product.images.length > 0) return product.images;
+    if (product.imageUrl) return [product.imageUrl];
+    return [];
+  }, [product]);
 
   useEffect(() => {
     if (product) {
       document.body.style.overflow = "hidden";
+      setCurrentImageIndex(0); // reset to first image when opening a new product
     }
     return () => {
       document.body.style.overflow = "unset";
@@ -35,7 +46,40 @@ export const ProductDetailsModal = ({ product, onClose }: ProductDetailsModalPro
     const message =
       `Hi! I'm interested in:\n${product.name}` +
       (product.price != null ? `\nPrice: £${product.price.toFixed(2)}` : "");
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
+    window.open(
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`,
+      "_blank"
+    );
+  };
+
+  const goToPrevImage = () => {
+    if (!images.length) return;
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const goToNextImage = () => {
+    if (!images.length) return;
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartX === null) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - touchStartX;
+
+    const threshold = 50; // px
+    if (Math.abs(diff) > threshold) {
+      if (diff < 0) {
+        goToNextImage();
+      } else {
+        goToPrevImage();
+      }
+      setTouchStartX(null); // reset after a swipe
+    }
   };
 
   return (
@@ -59,23 +103,102 @@ export const ProductDetailsModal = ({ product, onClose }: ProductDetailsModalPro
         </button>
 
         <div className="grid md:grid-cols-2 gap-0">
-          <div className="relative aspect-square md:aspect-auto bg-muted overflow-hidden rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none">
-            {product.imageUrl ? (
-              <img
-                src={product.imageUrl}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
-                <span className="text-white/70 text-lg font-medium text-center px-4">{product.name}</span>
+          {/* LEFT: IMAGE AREA WITH GALLERY */}
+          <div className="relative bg-muted overflow-hidden rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none">
+            <div
+              className="relative aspect-square md:aspect-[4/5] w-full overflow-hidden"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+            >
+              {images.length > 0 ? (
+                <img
+                  src={images[currentImageIndex]}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
+                  <span className="text-white/70 text-lg font-medium text-center px-4">
+                    {product.name}
+                  </span>
+                </div>
+              )}
+
+              {/* Prev/Next buttons */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goToPrevImage}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 text-white p-2 hover:bg-black/70 transition"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goToNextImage}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 text-white p-2 hover:bg-black/70 transition"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+
+              {/* Popular badge */}
+              {product.isPopular && (
+                <Badge className="absolute top-4 left-4 bg-secondary text-secondary-foreground">
+                  Popular
+                </Badge>
+              )}
+
+              {/* Small dots indicator (optional) */}
+              {images.length > 1 && (
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                  {images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`h-2 w-2 rounded-full transition ${
+                        idx === currentImageIndex
+                          ? "bg-white"
+                          : "bg-white/40 hover:bg-white/70"
+                      }`}
+                      aria-label={`Go to image ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnails strip */}
+            {images.length > 1 && (
+              <div className="flex gap-2 px-4 py-3 bg-card/80 border-t border-border overflow-x-auto">
+                {images.map((src, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCurrentImageIndex(idx)}
+                    className={`relative h-16 w-16 flex-shrink-0 rounded-md overflow-hidden border transition ${
+                      idx === currentImageIndex
+                        ? "border-primary"
+                        : "border-transparent hover:border-border"
+                    }`}
+                  >
+                    <img
+                      src={src}
+                      alt={`${product.name} ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
               </div>
-            )}
-            {product.isPopular && (
-              <Badge className="absolute top-4 left-4 bg-secondary text-secondary-foreground">Popular</Badge>
             )}
           </div>
 
+          {/* RIGHT: DETAILS */}
           <div className="p-8 flex flex-col">
             <div className="flex-1 space-y-6">
               {product.category && (
@@ -89,7 +212,9 @@ export const ProductDetailsModal = ({ product, onClose }: ProductDetailsModalPro
                   {product.name}
                 </h2>
                 <div className="text-3xl font-bold text-primary mt-4">
-                  {product.price != null ? `£${product.price.toFixed(2)}` : "Price on request"}
+                  {product.price != null
+                    ? `£${product.price.toFixed(2)}`
+                    : "Price on request"}
                 </div>
               </div>
 
@@ -98,8 +223,9 @@ export const ProductDetailsModal = ({ product, onClose }: ProductDetailsModalPro
                   <p className="leading-relaxed">{product.description}</p>
                 ) : (
                   <p className="leading-relaxed">
-                    This beautifully crafted personalised item makes the perfect gift for any occasion.
-                    Each piece is carefully designed to create lasting memories.
+                    This beautifully crafted personalised item makes the perfect
+                    gift for any occasion. Each piece is carefully designed to
+                    create lasting memories.
                   </p>
                 )}
 

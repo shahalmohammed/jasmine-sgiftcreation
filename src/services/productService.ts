@@ -6,11 +6,18 @@ const getAuthHeaders = () => {
     Authorization: `Bearer ${token}`,
   };
 };
-// Product Service
+
+type ProductFormPayload = {
+  name: string;
+  description: string;
+  price: string;
+  isPopular: boolean;
+  imageFiles?: File[];
+};
+
 export const productService = {
-  // Fetch all products
   async getAllProducts() {
-    const response = await fetch(`${API_BASE_URL}/products`, {
+    const response = await fetch(`${API_BASE_URL}/products?limit=100`, {
       headers: getAuthHeaders(),
     });
 
@@ -22,28 +29,23 @@ export const productService = {
     return data.items || [];
   },
 
-  // Create a new product
-  async createProduct(formData: {
-    name: string;
-    description: string;
-    price: string;
-    isPopular: boolean;
-    imageFile: File | null;
-  }) {
+  async createProduct(formData: ProductFormPayload) {
     const formDataToSend = new FormData();
-    
+
     formDataToSend.append("name", formData.name);
     formDataToSend.append("description", formData.description);
     formDataToSend.append("price", formData.price);
     formDataToSend.append("isPopular", formData.isPopular.toString());
-    
-    if (formData.imageFile) {
-      formDataToSend.append("image", formData.imageFile);
+
+    if (formData.imageFiles && formData.imageFiles.length > 0) {
+      formData.imageFiles.slice(0, 5).forEach((file) => {
+        formDataToSend.append("images", file); // must be "images"
+      });
     }
 
     const response = await fetch(`${API_BASE_URL}/products`, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(), // don't set Content-Type manually
       body: formDataToSend,
     });
 
@@ -57,25 +59,18 @@ export const productService = {
   },
 
   // Update an existing product
-  async updateProduct(
-    productId: string,
-    formData: {
-      name: string;
-      description: string;
-      price: string;
-      isPopular: boolean;
-      imageFile: File | null;
-    }
-  ) {
+  async updateProduct(productId: string, formData: ProductFormPayload) {
     const formDataToSend = new FormData();
-    
+
     formDataToSend.append("name", formData.name);
     formDataToSend.append("description", formData.description);
     formDataToSend.append("price", formData.price);
     formDataToSend.append("isPopular", formData.isPopular.toString());
-    
-    if (formData.imageFile) {
-      formDataToSend.append("image", formData.imageFile);
+
+    if (formData.imageFiles && formData.imageFiles.length > 0) {
+      formData.imageFiles.slice(0, 5).forEach((file) => {
+        formDataToSend.append("images", file);
+      });
     }
 
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
@@ -93,7 +88,6 @@ export const productService = {
     return data;
   },
 
-  // Toggle product popularity
   async togglePopularity(productId: string) {
     const response = await fetch(
       `${API_BASE_URL}/products/${productId}/toggle-popular`,
@@ -110,7 +104,6 @@ export const productService = {
     return await response.json();
   },
 
-  // Delete a product
   async deleteProduct(productId: string) {
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       method: "DELETE",
@@ -125,9 +118,7 @@ export const productService = {
   },
 };
 
-// Auth Service
 export const authService = {
-  // Admin login
   async login(email: string, password: string) {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
@@ -143,41 +134,32 @@ export const authService = {
       throw new Error(data.message || "Invalid credentials");
     }
 
-    // Save session automatically
     const user = data.user || { email };
     this.saveSession(data.token, user);
-
-    console.log("Session saved:", { token: data.token, user }); // Debug log
 
     return data;
   },
 
-  // Logout
   logout() {
     localStorage.removeItem("adminToken");
     localStorage.removeItem("adminUser");
   },
 
-  // Get current admin user
   getCurrentUser() {
     const user = localStorage.getItem("adminUser");
     return user ? JSON.parse(user) : null;
   },
 
-  // Get auth token
   getToken() {
     return localStorage.getItem("adminToken");
   },
 
-  // Check if user is authenticated
   isAuthenticated() {
     return !!this.getToken();
   },
 
-  // Save user session
   saveSession(token: string, user: any) {
     localStorage.setItem("adminToken", token);
     localStorage.setItem("adminUser", JSON.stringify(user));
-    console.log("Token and user saved to localStorage"); // Debug log
   },
 };

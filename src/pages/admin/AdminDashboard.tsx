@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -28,7 +27,6 @@ import {
 import {
   Package,
   LogOut,
-  Settings,
   Plus,
   X,
   Upload,
@@ -49,7 +47,8 @@ interface Product {
   name: string;
   description: string;
   price: number;
-  imageUrl: string;
+  imageUrl?: string;   // primary
+  images?: string[];   // up to 5
   isPopular: boolean;
 }
 
@@ -60,7 +59,12 @@ interface ProductModalProps {
   product?: Product | null;
 }
 
-const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps) => {
+const ProductModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  product,
+}: ProductModalProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -68,8 +72,9 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
     price: "",
     isPopular: false,
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const { toast } = useToast();
   const isEditMode = !!product;
 
@@ -83,11 +88,13 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
           price: product.price.toString(),
           isPopular: product.isPopular,
         });
-        setImagePreview(product.imageUrl);
+        // no pre-bound files; new upload will replace existing images
+        setImageFiles([]);
+        setImagePreviews([]);
       } else {
         setFormData({ name: "", description: "", price: "", isPopular: false });
-        setImageFile(null);
-        setImagePreview(null);
+        setImageFiles([]);
+        setImagePreviews([]);
       }
     } else {
       document.body.style.overflow = "unset";
@@ -98,15 +105,39 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
   }, [isOpen, product]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const combinedFiles = [...imageFiles, ...files].slice(0, 5);
+    setImageFiles(combinedFiles);
+
+    const readers: Promise<string>[] = files.map(
+      (file) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        })
+    );
+
+    Promise.all(readers).then((newPreviews) => {
+      const combinedPreviews = [...imagePreviews, ...newPreviews].slice(0, 5);
+      setImagePreviews(combinedPreviews);
+    });
+  };
+
+  const handleRemoveImageAt = (index: number) => {
+    const newFiles = [...imageFiles];
+    const newPreviews = [...imagePreviews];
+    newFiles.splice(index, 1);
+    newPreviews.splice(index, 1);
+    setImageFiles(newFiles);
+    setImagePreviews(newPreviews);
+  };
+
+  const handleClearImages = () => {
+    setImageFiles([]);
+    setImagePreviews([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,22 +145,22 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
     setLoading(true);
 
     try {
-      const formDataToSend = {
+      const payload = {
         name: formData.name,
         description: formData.description,
         price: formData.price,
         isPopular: formData.isPopular,
-        imageFile,
+        imageFiles,
       };
 
-      if (isEditMode) {
-        await productService.updateProduct(product._id, formDataToSend);
+      if (isEditMode && product) {
+        await productService.updateProduct(product._id, payload);
         toast({
           title: "Success",
           description: "Product updated successfully!",
         });
       } else {
-        await productService.createProduct(formDataToSend);
+        await productService.createProduct(payload);
         toast({
           title: "Success",
           description: "Product added successfully!",
@@ -137,14 +168,15 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
       }
 
       setFormData({ name: "", description: "", price: "", isPopular: false });
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
       onSuccess();
       onClose();
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description:
+          error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -184,7 +216,9 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
               id="name"
               placeholder="e.g., Frame"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               required
             />
           </div>
@@ -198,7 +232,9 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
               placeholder="e.g., White Frame"
               rows={4}
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               required
             />
           </div>
@@ -212,71 +248,94 @@ const ProductModal = ({ isOpen, onClose, onSuccess, product }: ProductModalProps
               type="text"
               placeholder="e.g., 9.99"
               value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, price: e.target.value })
+              }
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image">
-              Product Image
-            </Label>
+            <Label htmlFor="images">Product Images (up to 5)</Label>
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
-              {imagePreview ? (
+              {imagePreviews.length > 0 ? (
                 <div className="space-y-4">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="max-h-48 mx-auto rounded-lg object-cover"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setImageFile(null);
-                      setImagePreview(null);
-                    }}
-                  >
-                    Remove Image
-                  </Button>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {imagePreviews.map((src, idx) => (
+                      <div key={idx} className="relative">
+                        <img
+                          src={src}
+                          alt={`Preview ${idx + 1}`}
+                          className="max-h-32 w-full object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white"
+                          onClick={() => handleRemoveImageAt(idx)}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 justify-center">
+                    {imagePreviews.length < 5 && (
+                      <Label
+                        htmlFor="images"
+                        className="inline-flex items-center gap-2 cursor-pointer text-sm text-muted-foreground border rounded-md px-3 py-2 hover:bg-muted"
+                      >
+                        <Upload className="h-4 w-4" />
+                        Add more images
+                        <Input
+                          id="images"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleImageChange}
+                        />
+                      </Label>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearImages}
+                    >
+                      Remove all
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    PNG, JPG, WEBP up to 10MB each. Maximum 5 images.
+                  </p>
                 </div>
               ) : (
-                <label htmlFor="image" className="cursor-pointer">
+                <label htmlFor="images" className="cursor-pointer">
                   <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground mb-1">
                     Click to upload or drag and drop
                   </p>
-                  <p className="text-xs text-muted-foreground">PNG, JPG, WEBP up to 10MB (Optional)</p>
+                  <p className="text-xs text-muted-foreground">
+                    PNG, JPG, WEBP up to 10MB each (Optional, max 5)
+                  </p>
                   <Input
-                    id="image"
+                    id="images"
                     type="file"
                     accept="image/*"
+                    multiple
                     className="hidden"
                     onChange={handleImageChange}
                   />
                 </label>
               )}
             </div>
-          </div>
-
-          {/* <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="space-y-0.5">
-              <Label htmlFor="isPopular" className="text-base">
-                Mark as Popular
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                This product will appear in the popular section
+            {isEditMode && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Leave this empty to keep existing images. Uploading new images
+                will replace them.
               </p>
-            </div>
-            <Switch
-              id="isPopular"
-              checked={formData.isPopular}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, isPopular: checked })
-              }
-            />
-          </div> */}
+            )}
+          </div>
 
           <div className="flex gap-3 pt-4">
             <Button
@@ -333,6 +392,7 @@ const AdminDashboard = () => {
     const user = authService.getCurrentUser();
     setAdminUser(user);
     fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProducts = async () => {
@@ -414,20 +474,28 @@ const AdminDashboard = () => {
 
   const columns: ColumnDef<Product>[] = [
     {
-      accessorKey: "imageUrl",
+      accessorKey: "image",
       header: "Image",
-      cell: ({ row }) => (
-        <img
-          src={row.original.imageUrl || "/placeholder.png"}
-          alt={row.original.name}
-          className="w-16 h-16 object-cover rounded"
-        />
-      ),
+      cell: ({ row }) => {
+        const img =
+          row.original.images?.[0] ||
+          row.original.imageUrl ||
+          "/placeholder.png";
+        return (
+          <img
+            src={img}
+            alt={row.original.name}
+            className="w-16 h-16 object-cover rounded"
+          />
+        );
+      },
     },
     {
       accessorKey: "name",
       header: "Name",
-      cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.name}</div>
+      ),
     },
     {
       accessorKey: "description",
@@ -469,8 +537,8 @@ const AdminDashboard = () => {
       header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-2">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={() => openEditModal(row.original)}
           >
@@ -517,7 +585,9 @@ const AdminDashboard = () => {
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Admin Dashboard
+            </h1>
             <p className="text-sm text-muted-foreground">
               Welcome back, {adminUser?.name || "Admin"}
             </p>
@@ -535,8 +605,12 @@ const AdminDashboard = () => {
         <Card className="p-6 hover:shadow-lg transition-shadow mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Total Products</p>
-              <p className="text-3xl font-bold text-foreground">{products.length}</p>
+              <p className="text-sm text-muted-foreground mb-1">
+                Total Products
+              </p>
+              <p className="text-3xl font-bold text-foreground">
+                {products.length}
+              </p>
             </div>
             <div className="p-3 rounded-full bg-blue-100">
               <Package className="h-6 w-6 text-blue-600" />
@@ -561,10 +635,7 @@ const AdminDashboard = () => {
             <div className="text-center py-12">
               <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No products found</p>
-              <Button
-                className="mt-4"
-                onClick={openAddModal}
-              >
+              <Button className="mt-4" onClick={openAddModal}>
                 Add Your First Product
               </Button>
             </div>
@@ -633,9 +704,14 @@ const AdminDashboard = () => {
 
               <div className="flex items-center justify-between mt-4">
                 <div className="text-sm text-muted-foreground">
-                  Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
+                  Showing{" "}
+                  {table.getState().pagination.pageIndex *
+                    table.getState().pagination.pageSize +
+                    1}{" "}
+                  to{" "}
                   {Math.min(
-                    (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                    (table.getState().pagination.pageIndex + 1) *
+                      table.getState().pagination.pageSize,
                     products.length
                   )}{" "}
                   of {products.length} products
