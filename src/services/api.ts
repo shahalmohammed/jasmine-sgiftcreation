@@ -1,5 +1,5 @@
 
-const API_BASE = "https://jasminesgiftbackend.vercel.app/";
+const API_BASE = "https://jasminesgiftbackend-c9ed.vercel.app/";
 
 export type Product = {
   _id: string;

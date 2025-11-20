@@ -14,11 +14,19 @@ export const ProductDetailsModal = ({ product, onClose }: ProductDetailsModalPro
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
-  // Build image list (prefer product.images, fall back to imageUrl)
+  // Build image list: prefer imageUrls from backend, then images, then imageUrl
   const images = useMemo(() => {
     if (!product) return [] as string[];
-    if (product.images && product.images.length > 0) return product.images;
-    if (product.imageUrl) return [product.imageUrl];
+
+    if (product.imageUrls && product.imageUrls.length > 0) {
+      return product.imageUrls;
+    }
+    if (product.images && product.images.length > 0) {
+      return product.images;
+    }
+    if (product.imageUrl) {
+      return [product.imageUrl];
+    }
     return [];
   }, [product]);
 
@@ -153,7 +161,7 @@ export const ProductDetailsModal = ({ product, onClose }: ProductDetailsModalPro
                 </Badge>
               )}
 
-              {/* Small dots indicator (optional) */}
+              {/* Small dots indicator */}
               {images.length > 1 && (
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
                   {images.map((_, idx) => (

@@ -47,8 +47,7 @@ interface Product {
   name: string;
   description: string;
   price: number;
-  imageUrl?: string;   // primary
-  images?: string[];   // up to 5
+  imageUrls?: string[]; // backend field: up to 5 image URLs
   isPopular: boolean;
 }
 
@@ -88,9 +87,9 @@ const ProductModal = ({
           price: product.price.toString(),
           isPopular: product.isPopular,
         });
-        // no pre-bound files; new upload will replace existing images
+        // show existing images from backend as previews
         setImageFiles([]);
-        setImagePreviews([]);
+        setImagePreviews(product.imageUrls ?? []);
       } else {
         setFormData({ name: "", description: "", price: "", isPopular: false });
         setImageFiles([]);
@@ -150,7 +149,7 @@ const ProductModal = ({
         description: formData.description,
         price: formData.price,
         isPopular: formData.isPopular,
-        imageFiles,
+        imageFiles, // productService should append these as "images"
       };
 
       if (isEditMode && product) {
@@ -332,7 +331,7 @@ const ProductModal = ({
             {isEditMode && (
               <p className="text-xs text-muted-foreground mt-1">
                 Leave this empty to keep existing images. Uploading new images
-                will replace them.
+                will replace them on save.
               </p>
             )}
           </div>
@@ -478,9 +477,7 @@ const AdminDashboard = () => {
       header: "Image",
       cell: ({ row }) => {
         const img =
-          row.original.images?.[0] ||
-          row.original.imageUrl ||
-          "/placeholder.png";
+          row.original.imageUrls?.[0] || "/placeholder.png";
         return (
           <img
             src={img}

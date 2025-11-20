@@ -11,9 +11,17 @@ interface ProductCardProps {
   animationDelay?: number;
 }
 
-export const ProductCard = ({ product, index, onClick, animationDelay = 50 }: ProductCardProps) => {
+export const ProductCard = ({
+  product,
+  index,
+  onClick,
+  animationDelay = 50,
+}: ProductCardProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Prefer multi-image array from backend
+  const imageSrc = product.imageUrls?.[0] || product.imageUrl || null;
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -25,9 +33,11 @@ export const ProductCard = ({ product, index, onClick, animationDelay = 50 }: Pr
       },
       { threshold: 0.1 }
     );
+
     if (cardRef.current) io.observe(cardRef.current);
+
     return () => {
-      if (cardRef.current) io.unobserve(cardRef.current);
+      io.disconnect();
     };
   }, []);
 
@@ -36,7 +46,10 @@ export const ProductCard = ({ product, index, onClick, animationDelay = 50 }: Pr
     const message =
       `Hi! I'm interested in:\n${product.name}` +
       (product.price != null ? `\nPrice: £${product.price.toFixed(2)}` : "");
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
+    window.open(
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`,
+      "_blank"
+    );
   };
 
   return (
@@ -50,32 +63,43 @@ export const ProductCard = ({ product, index, onClick, animationDelay = 50 }: Pr
     >
       <Card className="group overflow-hidden border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-card h-full flex flex-col">
         <div className="relative aspect-square overflow-hidden bg-muted flex-shrink-0">
-          {product.imageUrl ? (
+          {/* Main image (from imageUrls[0] or imageUrl) */}
+          {imageSrc ? (
             <img
-              src={product.imageUrl}
+              src={imageSrc}
               alt={product.name}
-              className="absolute inset-0 w-full h-full object-cover z-10"
+              className="absolute inset-0 w-full h-full object-cover"
               loading="lazy"
             />
-          ) : null}
+          ) : (
+            // Fallback gradient with name if no image
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
+              <span className="text-white/70 text-sm font-medium text-center px-2">
+                {product.name}
+              </span>
+            </div>
+          )}
 
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center z-0">
-            <span className="text-white/70 text-sm font-medium text-center px-2">{product.name}</span>
-          </div>
-
+          {/* Popular badge */}
           {product.isPopular && (
-            <Badge className="absolute top-3 left-3 bg-secondary text-secondary-foreground z-20">Popular</Badge>
+            <Badge className="absolute top-3 left-3 bg-secondary text-secondary-foreground z-10">
+              Popular
+            </Badge>
           )}
         </div>
 
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-2 flex-1 flex flex-col">
           {product.category && (
-            <div className="text-xs text-muted-foreground font-medium">{product.category}</div>
+            <div className="text-xs text-muted-foreground font-medium">
+              {product.category}
+            </div>
           )}
+
           <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
             {product.name}
           </h3>
-          <div className="flex items-center justify-between gap-2">
+
+          <div className="mt-auto flex items-center justify-between gap-2">
             <span className="text-base sm:text-xl font-bold text-foreground">
               {product.price != null ? `£${product.price.toFixed(2)}` : "—"}
             </span>

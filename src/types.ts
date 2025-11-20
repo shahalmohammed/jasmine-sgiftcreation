@@ -3,8 +3,16 @@ export type Product = {
   name: string;
   category?: string;
   price?: number;
-  imageUrl?: string;   
-  images?: string[];    
+
+  // Legacy single image field (old backend / seed data)
+  imageUrl?: string;
+
+  // Legacy multi-image field (if you used this earlier)
+  images?: string[];
+
+  // New backend field: up to 5 image URLs
+  imageUrls?: string[];
+
   isPopular?: boolean;
   isActive?: boolean;
   description?: string;
