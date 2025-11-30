@@ -41,13 +41,14 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { productService, authService } from "../../services/productService";
+import imageCompression from 'browser-image-compression';
 
 interface Product {
   _id: string;
   name: string;
   description: string;
   price: number;
-  imageUrls?: string[]; // backend field: up to 5 image URLs
+  imageUrls?: string[];
   isPopular: boolean;
 }
 
@@ -65,6 +66,7 @@ const ProductModal = ({
   product,
 }: ProductModalProps) => {
   const [loading, setLoading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -87,7 +89,6 @@ const ProductModal = ({
           price: product.price.toString(),
           isPopular: product.isPopular,
         });
-        // show existing images from backend as previews
         setImageFiles([]);
         setImagePreviews(product.imageUrls ?? []);
       } else {
@@ -103,26 +104,90 @@ const ProductModal = ({
     };
   }, [isOpen, product]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    const combinedFiles = [...imageFiles, ...files].slice(0, 5);
-    setImageFiles(combinedFiles);
+    setCompressing(true);
 
-    const readers: Promise<string>[] = files.map(
-      (file) =>
-        new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
+    try {
+      // Compression options for Vercel free tier (4.5MB total limit)
+      const options = {
+        maxSizeMB: 0.7, // Compress each image to max 700KB
+        maxWidthOrHeight: 1920, // Reasonable max dimension
+        useWebWorker: true,
+        fileType: 'image/jpeg', // Convert to JPEG for better compression
+      };
+
+      // Compress all images
+      const compressedFiles = await Promise.all(
+        files.map(async (file) => {
+          try {
+            const compressed = await imageCompression(file, options);
+            // Keep original filename but ensure .jpg extension
+            const newFile = new File(
+              [compressed], 
+              file.name.replace(/\.[^/.]+$/, '.jpg'),
+              { type: 'image/jpeg' }
+            );
+            return newFile;
+          } catch (error) {
+            console.error('Compression error for file:', file.name, error);
+            throw error;
+          }
         })
-    );
+      );
 
-    Promise.all(readers).then((newPreviews) => {
-      const combinedPreviews = [...imagePreviews, ...newPreviews].slice(0, 5);
-      setImagePreviews(combinedPreviews);
-    });
+      // Combine with existing files, limit to 5
+      const combinedFiles = [...imageFiles, ...compressedFiles].slice(0, 5);
+
+      // Check total size (3.5MB limit to be safe with form data overhead)
+      const totalSize = combinedFiles.reduce((acc, file) => acc + file.size, 0);
+      const maxTotalSize = 3.5 * 1024 * 1024; // 3.5MB
+
+      if (totalSize > maxTotalSize) {
+        toast({
+          title: "Files too large",
+          description: "Total size exceeds 3.5MB limit. Please use fewer images or smaller files.",
+          variant: "destructive",
+        });
+        setCompressing(false);
+        return;
+      }
+
+      setImageFiles(combinedFiles);
+
+      // Create previews
+      const readers = compressedFiles.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          })
+      );
+
+      Promise.all(readers).then((newPreviews) => {
+        const combinedPreviews = [...imagePreviews, ...newPreviews].slice(0, 5);
+        setImagePreviews(combinedPreviews);
+      });
+
+      // Show success message with size info
+      const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+      toast({
+        title: "Images compressed",
+        description: `${compressedFiles.length} image(s) compressed. Total size: ${totalSizeMB}MB`,
+      });
+    } catch (error) {
+      console.error('Image compression failed:', error);
+      toast({
+        title: "Compression failed",
+        description: "Failed to process images. Please try smaller files.",
+        variant: "destructive",
+      });
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const handleRemoveImageAt = (index: number) => {
@@ -149,7 +214,7 @@ const ProductModal = ({
         description: formData.description,
         price: formData.price,
         isPopular: formData.isPopular,
-        imageFiles, // productService should append these as "images"
+        imageFiles,
       };
 
       if (isEditMode && product) {
@@ -184,6 +249,10 @@ const ProductModal = ({
   };
 
   if (!isOpen) return null;
+
+  const totalSize = imageFiles.reduce((acc, file) => acc + file.size, 0);
+  const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+  const remainingSize = (3.5 - parseFloat(totalSizeMB)).toFixed(2);
 
   return (
     <div
@@ -257,7 +326,14 @@ const ProductModal = ({
           <div className="space-y-2">
             <Label htmlFor="images">Product Images (up to 5)</Label>
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
-              {imagePreviews.length > 0 ? (
+              {compressing ? (
+                <div className="py-8">
+                  <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Compressing images...
+                  </p>
+                </div>
+              ) : imagePreviews.length > 0 ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {imagePreviews.map((src, idx) => (
@@ -277,8 +353,18 @@ const ProductModal = ({
                       </div>
                     ))}
                   </div>
+                  
+                  {imageFiles.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      Total size: {totalSizeMB}MB / 3.5MB
+                      {parseFloat(remainingSize) > 0 && (
+                        <> ({remainingSize}MB remaining)</>
+                      )}
+                    </div>
+                  )}
+                  
                   <div className="flex gap-2 justify-center">
-                    {imagePreviews.length < 5 && (
+                    {imagePreviews.length < 5 && parseFloat(remainingSize) > 0 && (
                       <Label
                         htmlFor="images"
                         className="inline-flex items-center gap-2 cursor-pointer text-sm text-muted-foreground border rounded-md px-3 py-2 hover:bg-muted"
@@ -305,7 +391,7 @@ const ProductModal = ({
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    PNG, JPG, WEBP up to 10MB each. Maximum 5 images.
+                    Images are automatically compressed. Total must be under 3.5MB.
                   </p>
                 </div>
               ) : (
@@ -315,7 +401,7 @@ const ProductModal = ({
                     Click to upload or drag and drop
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    PNG, JPG, WEBP up to 10MB each (Optional, max 5)
+                    PNG, JPG, WEBP (auto-compressed, max 5 images, 3.5MB total)
                   </p>
                   <Input
                     id="images"
@@ -342,11 +428,15 @@ const ProductModal = ({
               variant="outline"
               className="flex-1"
               onClick={onClose}
-              disabled={loading}
+              disabled={loading || compressing}
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="flex-1" 
+              disabled={loading || compressing}
+            >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -391,7 +481,6 @@ const AdminDashboard = () => {
     const user = authService.getCurrentUser();
     setAdminUser(user);
     fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProducts = async () => {
@@ -476,8 +565,7 @@ const AdminDashboard = () => {
       accessorKey: "image",
       header: "Image",
       cell: ({ row }) => {
-        const img =
-          row.original.imageUrls?.[0] || "/placeholder.png";
+        const img = row.original.imageUrls?.[0] || "/placeholder.png";
         return (
           <img
             src={img}
