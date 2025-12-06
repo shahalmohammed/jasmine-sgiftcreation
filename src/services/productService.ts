@@ -6,6 +6,7 @@ const getAuthHeaders = () => {
     Authorization: `Bearer ${token}`,
   };
 };
+const MAX_IMAGES = 15;
 
 type ProductFormPayload = {
   name: string;
@@ -38,14 +39,20 @@ export const productService = {
     formDataToSend.append("isPopular", formData.isPopular.toString());
 
     if (formData.imageFiles && formData.imageFiles.length > 0) {
-      formData.imageFiles.slice(0, 5).forEach((file) => {
-        formDataToSend.append("images", file); // must be "images"
+      // Enforce max 15 on client (optional, for nicer UX)
+      const filesToSend =
+        formData.imageFiles.length > MAX_IMAGES
+          ? formData.imageFiles.slice(0, MAX_IMAGES)
+          : formData.imageFiles;
+
+      filesToSend.forEach((file) => {
+        formDataToSend.append("images", file); // field name must be "images"
       });
     }
 
     const response = await fetch(`${API_BASE_URL}/products`, {
       method: "POST",
-      headers: getAuthHeaders(), // don't set Content-Type manually
+      headers: getAuthHeaders(), // do NOT set Content-Type manually
       body: formDataToSend,
     });
 
@@ -58,7 +65,6 @@ export const productService = {
     return data;
   },
 
-  // Update an existing product
   async updateProduct(productId: string, formData: ProductFormPayload) {
     const formDataToSend = new FormData();
 
@@ -68,7 +74,12 @@ export const productService = {
     formDataToSend.append("isPopular", formData.isPopular.toString());
 
     if (formData.imageFiles && formData.imageFiles.length > 0) {
-      formData.imageFiles.slice(0, 5).forEach((file) => {
+      const filesToSend =
+        formData.imageFiles.length > MAX_IMAGES
+          ? formData.imageFiles.slice(0, MAX_IMAGES)
+          : formData.imageFiles;
+
+      filesToSend.forEach((file) => {
         formDataToSend.append("images", file);
       });
     }

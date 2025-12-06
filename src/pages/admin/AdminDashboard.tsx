@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { productService, authService } from "../../services/productService";
-import imageCompression from 'browser-image-compression';
+import imageCompression from "browser-image-compression";
 
 interface Product {
   _id: string;
@@ -58,6 +58,8 @@ interface ProductModalProps {
   onSuccess: () => void;
   product?: Product | null;
 }
+
+const MAX_IMAGES = 15;
 
 const ProductModal = ({
   isOpen,
@@ -111,44 +113,49 @@ const ProductModal = ({
     setCompressing(true);
 
     try {
-      // Compression options for Vercel free tier (4.5MB total limit)
+      // Compression options
       const options = {
-        maxSizeMB: 0.7, // Compress each image to max 700KB
-        maxWidthOrHeight: 1920, // Reasonable max dimension
+        maxSizeMB: 0.7, // Compress each image to max ~700KB
+        maxWidthOrHeight: 1920,
         useWebWorker: true,
-        fileType: 'image/jpeg', // Convert to JPEG for better compression
+        fileType: "image/jpeg",
       };
 
-      // Compress all images
       const compressedFiles = await Promise.all(
         files.map(async (file) => {
           try {
             const compressed = await imageCompression(file, options);
-            // Keep original filename but ensure .jpg extension
             const newFile = new File(
-              [compressed], 
-              file.name.replace(/\.[^/.]+$/, '.jpg'),
-              { type: 'image/jpeg' }
+              [compressed],
+              file.name.replace(/\.[^/.]+$/, ".jpg"),
+              { type: "image/jpeg" }
             );
             return newFile;
           } catch (error) {
-            console.error('Compression error for file:', file.name, error);
+            console.error("Compression error for file:", file.name, error);
             throw error;
           }
         })
       );
 
-      // Combine with existing files, limit to 5
-      const combinedFiles = [...imageFiles, ...compressedFiles].slice(0, 5);
+      // Combine with existing files, limit to MAX_IMAGES
+      const combinedFiles = [...imageFiles, ...compressedFiles].slice(
+        0,
+        MAX_IMAGES
+      );
 
-      // Check total size (3.5MB limit to be safe with form data overhead)
-      const totalSize = combinedFiles.reduce((acc, file) => acc + file.size, 0);
+      // Check total size
+      const totalSize = combinedFiles.reduce(
+        (acc, file) => acc + file.size,
+        0
+      );
       const maxTotalSize = 3.5 * 1024 * 1024; // 3.5MB
 
       if (totalSize > maxTotalSize) {
         toast({
           title: "Files too large",
-          description: "Total size exceeds 3.5MB limit. Please use fewer images or smaller files.",
+          description:
+            "Total size exceeds 3.5MB limit. Please use fewer images or smaller files.",
           variant: "destructive",
         });
         setCompressing(false);
@@ -157,7 +164,7 @@ const ProductModal = ({
 
       setImageFiles(combinedFiles);
 
-      // Create previews
+      // Create previews only for newly added (compressed) files
       const readers = compressedFiles.map(
         (file) =>
           new Promise<string>((resolve) => {
@@ -168,18 +175,20 @@ const ProductModal = ({
       );
 
       Promise.all(readers).then((newPreviews) => {
-        const combinedPreviews = [...imagePreviews, ...newPreviews].slice(0, 5);
+        const combinedPreviews = [...imagePreviews, ...newPreviews].slice(
+          0,
+          MAX_IMAGES
+        );
         setImagePreviews(combinedPreviews);
       });
 
-      // Show success message with size info
       const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
       toast({
         title: "Images compressed",
         description: `${compressedFiles.length} image(s) compressed. Total size: ${totalSizeMB}MB`,
       });
     } catch (error) {
-      console.error('Image compression failed:', error);
+      console.error("Image compression failed:", error);
       toast({
         title: "Compression failed",
         description: "Failed to process images. Please try smaller files.",
@@ -324,7 +333,7 @@ const ProductModal = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="images">Product Images (up to 5)</Label>
+            <Label htmlFor="images">Product Images (up to {MAX_IMAGES})</Label>
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
               {compressing ? (
                 <div className="py-8">
@@ -353,7 +362,7 @@ const ProductModal = ({
                       </div>
                     ))}
                   </div>
-                  
+
                   {imageFiles.length > 0 && (
                     <div className="text-xs text-muted-foreground">
                       Total size: {totalSizeMB}MB / 3.5MB
@@ -362,25 +371,26 @@ const ProductModal = ({
                       )}
                     </div>
                   )}
-                  
+
                   <div className="flex gap-2 justify-center">
-                    {imagePreviews.length < 5 && parseFloat(remainingSize) > 0 && (
-                      <Label
-                        htmlFor="images"
-                        className="inline-flex items-center gap-2 cursor-pointer text-sm text-muted-foreground border rounded-md px-3 py-2 hover:bg-muted"
-                      >
-                        <Upload className="h-4 w-4" />
-                        Add more images
-                        <Input
-                          id="images"
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          onChange={handleImageChange}
-                        />
-                      </Label>
-                    )}
+                    {imagePreviews.length < MAX_IMAGES &&
+                      parseFloat(remainingSize) > 0 && (
+                        <Label
+                          htmlFor="images"
+                          className="inline-flex items-center gap-2 cursor-pointer text-sm text-muted-foreground border rounded-md px-3 py-2 hover:bg-muted"
+                        >
+                          <Upload className="h-4 w-4" />
+                          Add more images
+                          <Input
+                            id="images"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={handleImageChange}
+                          />
+                        </Label>
+                      )}
                     <Button
                       type="button"
                       variant="outline"
@@ -391,7 +401,8 @@ const ProductModal = ({
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Images are automatically compressed. Total must be under 3.5MB.
+                    Images are automatically compressed. Total must be under
+                    3.5MB. Maximum {MAX_IMAGES} images.
                   </p>
                 </div>
               ) : (
@@ -401,7 +412,8 @@ const ProductModal = ({
                     Click to upload or drag and drop
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    PNG, JPG, WEBP (auto-compressed, max 5 images, 3.5MB total)
+                    PNG, JPG, WEBP (auto-compressed, max {MAX_IMAGES} images,
+                    3.5MB total)
                   </p>
                   <Input
                     id="images"
@@ -432,9 +444,9 @@ const ProductModal = ({
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              className="flex-1" 
+            <Button
+              type="submit"
+              className="flex-1"
               disabled={loading || compressing}
             >
               {loading ? (
