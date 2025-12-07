@@ -1,3 +1,4 @@
+import type React from "react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -60,6 +61,7 @@ interface ProductModalProps {
 }
 
 const MAX_IMAGES = 15;
+const MAX_TOTAL_SIZE_MB = 3.5;
 
 const ProductModal = ({
   isOpen,
@@ -110,52 +112,79 @@ const ProductModal = ({
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
+    // existing total size
+    const existingTotalBytes = imageFiles.reduce(
+      (acc, file) => acc + file.size,
+      0
+    );
+    const maxTotalBytes = MAX_TOTAL_SIZE_MB * 1024 * 1024;
+    const remainingBytes = maxTotalBytes - existingTotalBytes;
+
+    if (remainingBytes <= 0) {
+      toast({
+        title: "Image limit reached",
+        description:
+          "You cannot add more images because the total size is already at the limit. Remove some images first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // per-image budget for new files
+    const perImageBudgetMB = remainingBytes / files.length / (1024 * 1024);
+
+    if (perImageBudgetMB <= 0) {
+      toast({
+        title: "Too many images",
+        description:
+          "These images cannot fit under the total size limit. Try uploading fewer images at a time.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setCompressing(true);
 
     try {
-      // Compression options
-      const options = {
-        maxSizeMB: 0.7, // Compress each image to max ~700KB
+      const baseOptions = {
         maxWidthOrHeight: 1920,
         useWebWorker: true,
-        fileType: "image/jpeg",
+        fileType: "image/jpeg" as const,
       };
+
+      // compress each new file within per-image budget,
+      // but never above 0.7 MB per image
+      const targetMaxSizeMB = Math.min(0.7, perImageBudgetMB);
 
       const compressedFiles = await Promise.all(
         files.map(async (file) => {
-          try {
-            const compressed = await imageCompression(file, options);
-            const newFile = new File(
-              [compressed],
-              file.name.replace(/\.[^/.]+$/, ".jpg"),
-              { type: "image/jpeg" }
-            );
-            return newFile;
-          } catch (error) {
-            console.error("Compression error for file:", file.name, error);
-            throw error;
-          }
+          const compressedBlob = await imageCompression(file, {
+            ...baseOptions,
+            maxSizeMB: targetMaxSizeMB,
+          });
+
+          return new File(
+            [compressedBlob],
+            file.name.replace(/\.[^/.]+$/, ".jpg"),
+            { type: "image/jpeg" }
+          );
         })
       );
 
-      // Combine with existing files, limit to MAX_IMAGES
       const combinedFiles = [...imageFiles, ...compressedFiles].slice(
         0,
         MAX_IMAGES
       );
-
-      // Check total size
-      const totalSize = combinedFiles.reduce(
+      const totalBytes = combinedFiles.reduce(
         (acc, file) => acc + file.size,
         0
       );
-      const maxTotalSize = 3.5 * 1024 * 1024; // 3.5MB
 
-      if (totalSize > maxTotalSize) {
+      if (totalBytes > maxTotalBytes) {
         toast({
-          title: "Files too large",
+          title: "Limit exceeded",
           description:
-            "Total size exceeds 3.5MB limit. Please use fewer images or smaller files.",
+            "Even after compression, the total size is above the limit. Please remove some images or upload fewer.",
           variant: "destructive",
         });
         setCompressing(false);
@@ -164,7 +193,6 @@ const ProductModal = ({
 
       setImageFiles(combinedFiles);
 
-      // Create previews only for newly added (compressed) files
       const readers = compressedFiles.map(
         (file) =>
           new Promise<string>((resolve) => {
@@ -174,18 +202,17 @@ const ProductModal = ({
           })
       );
 
-      Promise.all(readers).then((newPreviews) => {
-        const combinedPreviews = [...imagePreviews, ...newPreviews].slice(
-          0,
-          MAX_IMAGES
-        );
-        setImagePreviews(combinedPreviews);
-      });
+      const newPreviews = await Promise.all(readers);
+      const combinedPreviews = [...imagePreviews, ...newPreviews].slice(
+        0,
+        MAX_IMAGES
+      );
+      setImagePreviews(combinedPreviews);
 
-      const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+      const totalSizeMB = (totalBytes / (1024 * 1024)).toFixed(2);
       toast({
         title: "Images compressed",
-        description: `${compressedFiles.length} image(s) compressed. Total size: ${totalSizeMB}MB`,
+        description: `${compressedFiles.length} image(s) compressed. Total size: ${totalSizeMB}MB (max ${MAX_TOTAL_SIZE_MB}MB).`,
       });
     } catch (error) {
       console.error("Image compression failed:", error);
@@ -261,7 +288,9 @@ const ProductModal = ({
 
   const totalSize = imageFiles.reduce((acc, file) => acc + file.size, 0);
   const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
-  const remainingSize = (3.5 - parseFloat(totalSizeMB)).toFixed(2);
+  const remainingSize = (
+    MAX_TOTAL_SIZE_MB - parseFloat(totalSizeMB || "0")
+  ).toFixed(2);
 
   return (
     <div
@@ -365,7 +394,7 @@ const ProductModal = ({
 
                   {imageFiles.length > 0 && (
                     <div className="text-xs text-muted-foreground">
-                      Total size: {totalSizeMB}MB / 3.5MB
+                      Total size: {totalSizeMB}MB / {MAX_TOTAL_SIZE_MB}MB
                       {parseFloat(remainingSize) > 0 && (
                         <> ({remainingSize}MB remaining)</>
                       )}
@@ -401,8 +430,8 @@ const ProductModal = ({
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Images are automatically compressed. Total must be under
-                    3.5MB. Maximum {MAX_IMAGES} images.
+                    Images are automatically compressed. Total must be under{" "}
+                    {MAX_TOTAL_SIZE_MB}MB. Maximum {MAX_IMAGES} images.
                   </p>
                 </div>
               ) : (
@@ -412,8 +441,8 @@ const ProductModal = ({
                     Click to upload or drag and drop
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    PNG, JPG, WEBP (auto-compressed, max {MAX_IMAGES} images,
-                    3.5MB total)
+                    PNG, JPG, WEBP (auto-compressed, max {MAX_IMAGES} images,{" "}
+                    {MAX_TOTAL_SIZE_MB}MB total)
                   </p>
                   <Input
                     id="images"
