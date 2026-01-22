@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Heart, Sparkles } from "lucide-react";
 import heroImage1 from "@/assets/hero-bg.jpg";
 import heroImage2 from "@/assets/hero-bg4.jpg";
-import heroImage3 from "@/assets/hero-bg3.jpg";
+import heroImage3 from "@/assets/hero-bg3.png";
 import { useState, useEffect } from "react";
 
 const Hero = () => {

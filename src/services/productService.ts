@@ -6,6 +6,7 @@ const getAuthHeaders = () => {
     Authorization: `Bearer ${token}`,
   };
 };
+
 const MAX_IMAGES = 15;
 
 type ProductFormPayload = {
@@ -39,20 +40,19 @@ export const productService = {
     formDataToSend.append("isPopular", formData.isPopular.toString());
 
     if (formData.imageFiles && formData.imageFiles.length > 0) {
-      // Enforce max 15 on client (optional, for nicer UX)
       const filesToSend =
         formData.imageFiles.length > MAX_IMAGES
           ? formData.imageFiles.slice(0, MAX_IMAGES)
           : formData.imageFiles;
 
       filesToSend.forEach((file) => {
-        formDataToSend.append("images", file); // field name must be "images"
+        formDataToSend.append("images", file);
       });
     }
 
     const response = await fetch(`${API_BASE_URL}/products`, {
       method: "POST",
-      headers: getAuthHeaders(), // do NOT set Content-Type manually
+      headers: getAuthHeaders(),
       body: formDataToSend,
     });
 
@@ -126,6 +126,39 @@ export const productService = {
     }
 
     return await response.json();
+  },
+};
+
+export const reviewService = {
+  // Public: fetch reviews
+  async getReviews(productId: string, page = 1, limit = 10) {
+    const res = await fetch(
+      `${API_BASE_URL}/products/${productId}/reviews?page=${page}&limit=${limit}`
+    );
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to load reviews");
+    }
+
+    return data;
+  },
+
+  // Public: add review (no auth). If you later require auth, add headers.
+  async addReview(productId: string, payload: { rating: number; comment?: string; customerName?: string }) {
+    const res = await fetch(`${API_BASE_URL}/products/${productId}/reviews`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to submit review");
+    }
+
+    return data;
   },
 };
 
