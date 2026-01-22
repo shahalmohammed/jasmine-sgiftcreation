@@ -20,7 +20,6 @@ export const ProductCard = ({
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Prefer multi-image array from backend
   const imageSrc = product.imageUrls?.[0] || product.imageUrl || null;
 
   useEffect(() => {
@@ -63,7 +62,6 @@ export const ProductCard = ({
     >
       <Card className="group overflow-hidden border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-card h-full flex flex-col">
         <div className="relative aspect-square overflow-hidden bg-muted flex-shrink-0">
-          {/* Main image (from imageUrls[0] or imageUrl) */}
           {imageSrc ? (
             <img
               src={imageSrc}
@@ -72,7 +70,6 @@ export const ProductCard = ({
               loading="lazy"
             />
           ) : (
-            // Fallback gradient with name if no image
             <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
               <span className="text-white/70 text-sm font-medium text-center px-2">
                 {product.name}
@@ -80,7 +77,6 @@ export const ProductCard = ({
             </div>
           )}
 
-          {/* Popular badge */}
           {product.isPopular && (
             <Badge className="absolute top-3 left-3 bg-secondary text-secondary-foreground z-10">
               Popular
@@ -98,6 +94,11 @@ export const ProductCard = ({
           <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
             {product.name}
           </h3>
+
+          {/* rating summary */}
+          <div className="text-xs text-muted-foreground">
+            {(product.averageRating ?? 0).toFixed(1)} / 5.0 ({product.ratingsCount ?? 0})
+          </div>
 
           <div className="mt-auto flex items-center justify-between gap-2">
             <span className="text-base sm:text-xl font-bold text-foreground">
