@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Product } from "@/types";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductDetailsModal } from "@/components/ProductDetailsModal";
+import { reviewService } from "@/services/productService";
 
 const ProductsGrid = () => {
   const [popular, setPopular] = useState<Product[]>([]);
@@ -16,6 +17,10 @@ const ProductsGrid = () => {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [submittedReviews, setSubmittedReviews] = useState<Array<{ name: string; rating: number; text: string }>>([]);
+  const [reviews, setReviews] = useState<Array<any>>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [ratingsCount, setRatingsCount] = useState(0);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -55,6 +60,14 @@ const ProductsGrid = () => {
     return () => ctrl.abort();
   }, []);
 
+  // Fetch reviews when products load
+  useEffect(() => {
+    const productId = popular[0]?._id || normal[0]?._id;
+    if (productId) {
+      fetchReviews(productId);
+    }
+  }, [popular, normal]);
+
   const products = useMemo(() => [...popular, ...normal], [popular, normal]);
 
   const handleSubmitQuestion = () => {
@@ -64,12 +77,48 @@ const ProductsGrid = () => {
     }
   };
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (reviewName.trim() && reviewText.trim()) {
-      setSubmittedReviews([...submittedReviews, { name: reviewName.trim(), rating: reviewRating, text: reviewText.trim() }]);
-      setReviewName("");
-      setReviewRating(5);
-      setReviewText("");
+      try {
+        // Submit to backend using the review service
+        const productId = popular[0]?._id || normal[0]?._id;
+        if (!productId) {
+          alert("No product available");
+          return;
+        }
+
+        await reviewService.addReview(productId, {
+          rating: reviewRating,
+          comment: reviewText.trim(),
+          customerName: reviewName.trim(),
+        });
+
+        // Fetch updated reviews
+        await fetchReviews(productId);
+
+        setReviewName("");
+        setReviewRating(5);
+        setReviewText("");
+      } catch (err: any) {
+        console.error("Error submitting review:", err);
+        alert("Failed to submit review");
+      }
+    }
+  };
+
+  const fetchReviews = async (productId: string) => {
+    try {
+      setReviewsLoading(true);
+      const data = await reviewService.getReviews(productId, 1, 20);
+      console.log("Reviews data:", data); // Debug log
+      setReviews(data.items || []);
+      setAverageRating(data.averageRating || 0);
+      setRatingsCount(data.ratingsCount || 0);
+    } catch (err: any) {
+      console.error("Error fetching reviews:", err);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
     }
   };
 
@@ -262,6 +311,82 @@ const ProductsGrid = () => {
               </div>
             </div>
           )}
+
+        {/* All Reviews from Backend */}
+        <div className="mt-24 max-w-4xl mx-auto">
+          <div className="text-center mb-12 space-y-4">
+            <h3 className="text-3xl md:text-4xl font-serif font-bold text-foreground">
+              All Customer Reviews
+            </h3>
+            <div className="flex items-center justify-center gap-4">
+              <div className="flex gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <svg
+                    key={i}
+                    className={`w-6 h-6 ${
+                      i < Math.round(averageRating)
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-gray-300"
+                    }`}
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                  </svg>
+                ))}
+              </div>
+              <span className="text-lg text-muted-foreground">
+                {averageRating.toFixed(1)} ({ratingsCount} {ratingsCount === 1 ? "review" : "reviews"})
+              </span>
+            </div>
+          </div>
+
+          {reviewsLoading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading reviews...</p>
+            </div>
+          ) : reviews.length > 0 ? (
+            <div className="grid md:grid-cols-2 gap-6">
+              {reviews.map((review, index) => (
+                <div
+                  key={index}
+                  className="p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-shadow duration-300 animate-in fade-in slide-in-from-bottom-3"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-semibold text-foreground">{review.customerName || "Anonymous"}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : "Just now"}
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <svg
+                          key={i}
+                          className={`w-4 h-4 ${
+                            i < (review.rating || 0)
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-gray-300"
+                          }`}
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                        </svg>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-foreground leading-relaxed">{review.comment || review.text || "No comment"}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
+            </div>
+          )}
+        </div>
         </div>
 
 
