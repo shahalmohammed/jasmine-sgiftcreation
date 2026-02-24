@@ -12,6 +12,10 @@ const ProductsGrid = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [question, setQuestion] = useState("");
   const [submittedQuestions, setSubmittedQuestions] = useState<string[]>([]);
+  const [reviewName, setReviewName] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState("");
+  const [submittedReviews, setSubmittedReviews] = useState<Array<{ name: string; rating: number; text: string }>>([]);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -57,6 +61,15 @@ const ProductsGrid = () => {
     if (question.trim()) {
       setSubmittedQuestions([...submittedQuestions, question.trim()]);
       setQuestion("");
+    }
+  };
+
+  const handleSubmitReview = () => {
+    if (reviewName.trim() && reviewText.trim()) {
+      setSubmittedReviews([...submittedReviews, { name: reviewName.trim(), rating: reviewRating, text: reviewText.trim() }]);
+      setReviewName("");
+      setReviewRating(5);
+      setReviewText("");
     }
   };
 
@@ -115,7 +128,143 @@ const ProductsGrid = () => {
           </Button>
         </div>
 
-        {/* Questions Section */}
+        {/* Write a Review Section */}
+        <div className="mt-24 max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h3 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4">
+              Share Your Review
+            </h3>
+            <p className="text-lg text-muted-foreground">
+              We'd love to hear about your experience with our personalised gifts
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <input
+              type="text"
+              value={reviewName}
+              onChange={(e) => setReviewName(e.target.value)}
+              placeholder="Your name..."
+              className="w-full p-4 rounded-lg border border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Rating
+              </label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <button
+                    key={rating}
+                    onClick={() => setReviewRating(rating)}
+                    className="transition-transform hover:scale-110"
+                    aria-label={`Rate ${rating} stars`}
+                  >
+                    <svg
+                      className={`w-8 h-8 ${
+                        rating <= reviewRating
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-gray-300"
+                      } cursor-pointer transition-colors`}
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <textarea
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              placeholder="Write your review here..."
+              className="w-full p-4 rounded-lg border border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[120px] resize-none"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                  handleSubmitReview();
+                }
+              }}
+            />
+            
+            <Button 
+              size="lg" 
+              className="w-full md:w-auto"
+              onClick={handleSubmitReview}
+              disabled={!reviewName.trim() || !reviewText.trim()}
+            >
+              Submit Review
+            </Button>
+          </div>
+
+          {/* Display Submitted Reviews */}
+          {submittedReviews.length > 0 && (
+            <div className="mt-12">
+              <h4 className="text-2xl font-serif font-semibold text-foreground mb-6">
+                Customer Reviews
+              </h4>
+              <div className="space-y-4">
+                {submittedReviews.map((review, index) => (
+                  <div
+                    key={index}
+                    className="p-4 rounded-lg border border-border bg-accent/50 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  >
+                    <div className="flex justify-between items-start gap-4 mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-semibold text-foreground">{review.name}</h4>
+                          <div className="flex gap-1">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <svg
+                                key={i}
+                                className={`w-4 h-4 ${
+                                  i < review.rating
+                                    ? "fill-yellow-400 text-yellow-400"
+                                    : "text-gray-300"
+                                }`}
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                              </svg>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSubmittedReviews(submittedReviews.filter((_, i) => i !== index));
+                        }}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Delete review"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
+                    <p className="text-foreground">{review.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+
         <div className="mt-24 max-w-3xl mx-auto">
           <div className="text-center mb-8">
             <h3 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4">

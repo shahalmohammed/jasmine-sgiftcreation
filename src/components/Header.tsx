@@ -11,12 +11,19 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const categories = [
-    "Personalised Baby Gifts",
-    "Personalised Wedding Gifts",
-    "Mugs",
     "Frames",
-    "Home Decor",
-    "Accessories"
+    "Box frame",
+    "Baby gift",
+    "Wedding gift",
+    "Hafiz gifts",
+    "Hampers",
+    "Umrah gift",
+    "Mugs",
+    "Money box",
+    "Make up bags",
+    "Hajj gift",
+    "Wedding favours",
+    "Chopping board"
   ];
 
   useEffect(() => {
